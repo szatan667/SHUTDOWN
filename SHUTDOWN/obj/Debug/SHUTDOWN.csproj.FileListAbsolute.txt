@@ -1,8 +1,0 @@
-C:\Users\kuba\source\repos\SHUTDOWN\bin\Debug\SHUTDOWN.exe.config
-C:\Users\kuba\source\repos\SHUTDOWN\bin\Debug\SHUTDOWN.exe
-C:\Users\kuba\source\repos\SHUTDOWN\bin\Debug\SHUTDOWN.pdb
-C:\Users\kuba\source\repos\SHUTDOWN\obj\Debug\SHUTDOWN.Properties.Resources.resources
-C:\Users\kuba\source\repos\SHUTDOWN\obj\Debug\SHUTDOWN.csproj.GenerateResource.cache
-C:\Users\kuba\source\repos\SHUTDOWN\obj\Debug\SHUTDOWN.csproj.CoreCompileInputs.cache
-C:\Users\kuba\source\repos\SHUTDOWN\obj\Debug\SHUTDOWN.exe
-C:\Users\kuba\source\repos\SHUTDOWN\obj\Debug\SHUTDOWN.pdb
