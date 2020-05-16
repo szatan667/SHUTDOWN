@@ -218,6 +218,7 @@ public class SHUTDOWNX : ApplicationContext
             p.Start();
         }
     }
+
     //Custom menu item drawing - measure the area
     private void MenuItemMeasure(object ClickedItem, MeasureItemEventArgs e)
     {
@@ -235,15 +236,15 @@ public class SHUTDOWNX : ApplicationContext
     }
 
     //Custom menu item drawing - draw item
-    private void MenuItemDraw(object ClickedItem, DrawItemEventArgs e)
+    private void MenuItemDraw(object Item, DrawItemEventArgs e)
     {
         //Bold font for default menu item, regular font for other items
-        using (Font f = (ClickedItem as MenuItem).DefaultItem ? new Font(SystemFonts.MenuFont, FontStyle.Bold) : SystemFonts.MenuFont)
+        using (Font f = (Item as MenuItem).DefaultItem ? new Font(SystemFonts.MenuFont, FontStyle.Bold) : SystemFonts.MenuFont)
         {
             //Draw backgrounds - mouse over...
             if ((e.State & DrawItemState.Selected) != DrawItemState.None)
                 //Distinguish between enabled and disabled items
-                if ((ClickedItem as MenuItem).Enabled)
+                if ((Item as MenuItem).Enabled)
                 {
                     //Horizontal gradient and outside box
                     e.Graphics.FillRectangle(new LinearGradientBrush(e.Bounds, SystemColors.GradientActiveCaption, SystemColors.Control, (float)0), e.Bounds);
@@ -258,24 +259,26 @@ public class SHUTDOWNX : ApplicationContext
                 e.Graphics.DrawRectangle(SystemPens.Control, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
             }
 
-            //Distinguish between enabled and disabled items
+            //Setup brush - distinguish between enabled and disabled items
             Brush b;
-            if ((ClickedItem as MenuItem).Enabled)
+            if ((Item as MenuItem).Enabled)
                 b = SystemBrushes.ControlText;
             else
                 b = SystemBrushes.ControlDark;
 
-            if ((ClickedItem as MenuItem).Checked)
+            //Finally, draw menu item text
+            string checkmark = " ●  ";
+            if ((Item as MenuItem).Checked)
             {
-                e.Graphics.DrawString(" ●  " + (ClickedItem as MenuItem).Text, f, b,
+                e.Graphics.DrawString(checkmark + (Item as MenuItem).Text, f, b,
                 e.Bounds.X,
-                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f).Height) / 2);
+                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
             }
             else
             {
-                e.Graphics.DrawString((ClickedItem as MenuItem).Text, f, b,
-                e.Bounds.X + e.Graphics.MeasureString(" ●  ", f).Width,
-                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f).Height) / 2);
+                e.Graphics.DrawString((Item as MenuItem).Text, f, b,
+                e.Bounds.X + e.Graphics.MeasureString(checkmark, f).Width,
+                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
             }
         }
     }
