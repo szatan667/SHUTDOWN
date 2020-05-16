@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 /// <summary>
@@ -80,7 +82,7 @@ public class SHUTDOWNX : ApplicationContext
                     Tag = ShutdownTime.Hrs6,
                     RadioCheck = true
                 },
-                new MenuItem("-"),
+                new MenuItem("-") {Name = "Separator" },
                 new MenuItem("Shutdown action", new MenuItem[] //this is menu item with submenu
                 {
                     new MenuItem("Shutdown", EventCheckMark) {RadioCheck = true, Checked = true, Tag = ShutdownOptions.Shutdown },
@@ -89,13 +91,31 @@ public class SHUTDOWNX : ApplicationContext
                 {
                     Name = "ShutdownAction"
                 },
-                new MenuItem("-"),
-                new MenuItem("SHUTDOWN!", EventShutdown),
+                new MenuItem("-") {Name = "Separator" },
+                new MenuItem("SHUTDOWN!", EventShutdown) {DefaultItem = true },
                 new MenuItem("Abort shutdown", EventAbort),
-                new MenuItem("-"),
+                new MenuItem("-") {Name = "Separator" },
                 new MenuItem("Exit", EventExit)
             })
         }; //tray icon constructor end
+
+        //Register custom menu draw routine for each menu item
+        foreach (MenuItem mi in trayIcon.ContextMenu.MenuItems)
+            RegisterMenuEvents(mi);
+
+        void RegisterMenuEvents(MenuItem mi)
+        {
+            if (mi.Name != "Separator" || mi.Text != "-")
+            {
+                mi.OwnerDraw = true;
+                mi.MeasureItem += MenuItemMeasure;
+                mi.DrawItem += MenuItemDraw;
+
+                if (mi.MenuItems.Count != 0)
+                    foreach (MenuItem submi in mi.MenuItems)
+                        RegisterMenuEvents(submi);
+            }
+        }
 
         //Register tray icon click event
         trayIcon.MouseClick += EventIconClick;
@@ -196,6 +216,67 @@ public class SHUTDOWNX : ApplicationContext
 
             //Shut me down!
             p.Start();
+        }
+    }
+    //Custom menu item drawing - measure the area
+    private void MenuItemMeasure(object ClickedItem, MeasureItemEventArgs e)
+    {
+        //Use bold font for default menu item and regular one for other items
+        //(works as long as system default menu font is not bold ;))
+        using (Font f = (ClickedItem as MenuItem).DefaultItem ?   //is it default
+            new Font(SystemFonts.MenuFont, FontStyle.Bold) : //yes it is, use bold font
+            SystemFonts.MenuFont)                            //no, use default font
+        {
+            SizeF sz = e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f);
+
+            e.ItemWidth = (int)(1.1 * sz.Width);
+            e.ItemHeight = (int)(1.30 * sz.Height);
+        }
+    }
+
+    //Custom menu item drawing - draw item
+    private void MenuItemDraw(object ClickedItem, DrawItemEventArgs e)
+    {
+        //Bold font for default menu item, regular font for other items
+        using (Font f = (ClickedItem as MenuItem).DefaultItem ? new Font(SystemFonts.MenuFont, FontStyle.Bold) : SystemFonts.MenuFont)
+        {
+            //Draw backgrounds - mouse over...
+            if ((e.State & DrawItemState.Selected) != DrawItemState.None)
+                //Distinguish between enabled and disabled items
+                if ((ClickedItem as MenuItem).Enabled)
+                {
+                    //Horizontal gradient and outside box
+                    e.Graphics.FillRectangle(new LinearGradientBrush(e.Bounds, SystemColors.GradientActiveCaption, SystemColors.Control, (float)0), e.Bounds);
+                    e.Graphics.DrawRectangle(SystemPens.ControlDark, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
+                }
+                else { }
+            //...and mouse out
+            else
+            {
+                //Clear gradient and box with "control" color so they disappear
+                e.Graphics.FillRectangle(SystemBrushes.Control, e.Bounds);
+                e.Graphics.DrawRectangle(SystemPens.Control, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
+            }
+
+            //Distinguish between enabled and disabled items
+            Brush b;
+            if ((ClickedItem as MenuItem).Enabled)
+                b = SystemBrushes.ControlText;
+            else
+                b = SystemBrushes.ControlDark;
+
+            if ((ClickedItem as MenuItem).Checked)
+            {
+                e.Graphics.DrawString(" ●  " + (ClickedItem as MenuItem).Text, f, b,
+                e.Bounds.X,
+                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f).Height) / 2);
+            }
+            else
+            {
+                e.Graphics.DrawString((ClickedItem as MenuItem).Text, f, b,
+                e.Bounds.X + e.Graphics.MeasureString(" ●  ", f).Width,
+                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f).Height) / 2);
+            }
         }
     }
 }
