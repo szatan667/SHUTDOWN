@@ -100,31 +100,42 @@ public class SHUTDOWNX : ApplicationContext
         }; //tray icon constructor end
 
         //Register custom menu draw routine for each menu item
-        foreach (MenuItem mi in trayIcon.ContextMenu.MenuItems)
-            RegisterMenuEvents(mi);
-
-        void RegisterMenuEvents(MenuItem mi)
-        {
-            if (mi.Name != "Separator" || mi.Text != "-")
-            {
-                mi.OwnerDraw = true;
-                mi.MeasureItem += MenuItemMeasure;
-                mi.DrawItem += MenuItemDraw;
-
-                if (mi.MenuItems.Count != 0)
-                    foreach (MenuItem submi in mi.MenuItems)
-                        RegisterMenuEvents(submi);
-            }
-        }
+        RegisterMenuEvents(trayIcon.ContextMenu, MenuItemMeasure, MenuItemDraw);
 
         //Register tray icon click event
         trayIcon.MouseClick += EventIconClick;
     }
 
+    /// <summary>
+    /// Register custom measure and draw routine for all items in given contet menu
+    /// </summary>
+    /// <param name="contextMenu">Context menu to be custom-drawn</param>
+    /// <param name="measureProc">Menu item custom measure procedure</param>
+    /// <param name="drawProc">Menu item custom draw procedure</param>
+    private void RegisterMenuEvents(ContextMenu contextMenu, MeasureItemEventHandler measureProc, DrawItemEventHandler drawProc)
+    {
+        foreach (MenuItem mi in contextMenu.MenuItems)
+            RegisterSingleItem(mi);
+
+        void RegisterSingleItem(MenuItem mi)
+        {
+            if (mi.Name != "Separator" || mi.Text != "-")
+            {
+                mi.OwnerDraw = true;
+                mi.MeasureItem += measureProc;
+                mi.DrawItem += drawProc;
+
+                if (mi.MenuItems.Count != 0)
+                    foreach (MenuItem submi in mi.MenuItems)
+                        RegisterSingleItem(submi);
+            }
+        }
+    }
+
     //Set check mark for menu items within one group
     private void EventCheckMark(object ClickedItem, EventArgs e)
     {
-        //Go through event sender parent's menu items
+        //Go through menu items at the same level (all from sender's parent)
         //Don't look for currently checked item - just clear them all first...
         foreach (MenuItem mi in (ClickedItem as MenuItem).Parent.MenuItems)
             mi.Checked = false;
@@ -183,6 +194,7 @@ public class SHUTDOWNX : ApplicationContext
         trayIcon.Dispose();
         Application.Exit();
     }
+    
     /// <summary>
     /// Execute "shutdown" system command.
     /// </summary>
