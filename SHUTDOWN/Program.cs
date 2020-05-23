@@ -57,30 +57,32 @@ public class SHUTDOWNX : ApplicationContext
             //Add menu items and set their properties and events
             //Use "Tag" property to store custom parameters (shutdown time or shutdown option)
             {
-                new MenuItem("Pick schedule:")
+                new MenuItem("Pick schedule", new MenuItem[] //submenu item
                 {
-                    Enabled = false,
-                },
-                new MenuItem("Now", EventCheckMark)
+                    new MenuItem("Now", EventCheckMark)
+                    {
+                        Tag = ShutdownTime.Now,
+                        RadioCheck = true,
+                    },
+                    new MenuItem("1 hour", EventCheckMark)
+                    {
+                        Tag = ShutdownTime.Hrs1,
+                        RadioCheck = true,
+                        Checked = true
+                    },
+                    new MenuItem("2 hours", EventCheckMark)
+                    {
+                        Tag = ShutdownTime.Hrs2,
+                        RadioCheck = true,
+                    },
+                    new MenuItem("6 hours", EventCheckMark)
+                    {
+                        Tag = ShutdownTime.Hrs6,
+                        RadioCheck = true
+                    }
+                })
                 {
-                    Tag = ShutdownTime.Now,
-                    RadioCheck = true,
-                },
-                new MenuItem("1 hour", EventCheckMark)
-                {
-                    Tag = ShutdownTime.Hrs1,
-                    RadioCheck = true,
-                    Checked = true
-                },
-                new MenuItem("2 hours", EventCheckMark)
-                {
-                    Tag = ShutdownTime.Hrs2,
-                    RadioCheck = true,
-                },
-                new MenuItem("6 hours", EventCheckMark)
-                {
-                    Tag = ShutdownTime.Hrs6,
-                    RadioCheck = true
+                    Name = "ShutdownTime"
                 },
                 new MenuItem("-") {Name = "Separator" },
                 new MenuItem("Shutdown action", new MenuItem[] //this is menu item with submenu
@@ -119,6 +121,7 @@ public class SHUTDOWNX : ApplicationContext
 
         void RegisterSingleItem(MenuItem mi)
         {
+            //Separator will be drawn by system routine because it looks fine already
             if (mi.Name != "Separator" || mi.Text != "-")
             {
                 mi.OwnerDraw = true;
@@ -132,7 +135,7 @@ public class SHUTDOWNX : ApplicationContext
         }
     }
 
-    //Set check mark for menu items within one group
+    //Set check mark for clicked menu item
     private void EventCheckMark(object ClickedItem, EventArgs e)
     {
         //Go through menu items at the same level (all from sender's parent)
@@ -156,7 +159,7 @@ public class SHUTDOWNX : ApplicationContext
     {
         //Find checked menu item and fire up shutdown with proper option and time
         //(get option and time from enu item "Tag" properties)
-        foreach (MenuItem mi in trayIcon.ContextMenu.MenuItems)
+        foreach (MenuItem mi in trayIcon.ContextMenu.MenuItems["ShutdownTime"].MenuItems)
             if (mi.Checked)
             {
                 trayIcon.Icon = SHUTDOWN.Properties.Resources.ORANGE;
@@ -169,10 +172,9 @@ public class SHUTDOWNX : ApplicationContext
                 foreach (MenuItem mi2 in trayIcon.ContextMenu.MenuItems["ShutdownAction"].MenuItems)
                     if (mi2.Checked)
                     {
-                        Shutdown((ShutdownOptions)mi2.Tag, (ShutdownTime)mi.Tag);
+                        Shutdown(mi2.Tag, mi.Tag);
                         break;
                     }
-
                 break;
             }
     }
@@ -200,7 +202,7 @@ public class SHUTDOWNX : ApplicationContext
     /// </summary>
     /// <param name="ShutdownOption">Shutdown action to execute.</param>
     /// <param name="ShutdownTime">Time to execute the option.</param>
-    void Shutdown(ShutdownOptions ShutdownOption, ShutdownTime ShutdownTime)
+    void Shutdown(object ShutdownOption, object ShutdownTime)
     {
         //Run system "shutdown.exe" command with desired option and time
         using (Process p = new Process())
@@ -272,25 +274,22 @@ public class SHUTDOWNX : ApplicationContext
             }
 
             //Setup brush - distinguish between enabled and disabled items
-            Brush b;
-            if ((Item as MenuItem).Enabled)
-                b = SystemBrushes.ControlText;
-            else
-                b = SystemBrushes.ControlDark;
-
-            //Finally, draw menu item text
-            string checkmark = " ●  ";
-            if ((Item as MenuItem).Checked)
+            using (Brush b = ((Item as MenuItem).Enabled) ? new SolidBrush(SystemColors.ControlText) : new SolidBrush(SystemColors.GrayText))
             {
-                e.Graphics.DrawString(checkmark + (Item as MenuItem).Text, f, b,
-                e.Bounds.X,
-                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
-            }
-            else
-            {
-                e.Graphics.DrawString((Item as MenuItem).Text, f, b,
-                e.Bounds.X + e.Graphics.MeasureString(checkmark, f).Width,
-                e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
+                //Finally, draw menu item text
+                string checkmark = " ●  ";
+                if ((Item as MenuItem).Checked)
+                {
+                    e.Graphics.DrawString(checkmark + (Item as MenuItem).Text, f, b,
+                    e.Bounds.X,
+                    e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
+                }
+                else
+                {
+                    e.Graphics.DrawString((Item as MenuItem).Text, f, b,
+                    e.Bounds.X + e.Graphics.MeasureString(checkmark, f).Width,
+                    e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
+                }
             }
         }
     }
