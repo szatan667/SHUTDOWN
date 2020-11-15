@@ -57,7 +57,7 @@ public class SHUTDOWNX : ApplicationContext
             //Add menu items and set their properties and events
             //Use "Tag" property to store custom parameters (shutdown time or shutdown option)
             {
-                new MenuItem("Pick schedule", new MenuItem[] //submenu item
+                new MenuItem("Time schedule", new MenuItem[] //submenu item
                 {
                     new MenuItem("Now", EventCheckMark)
                     {
