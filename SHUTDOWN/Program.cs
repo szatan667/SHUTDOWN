@@ -17,7 +17,7 @@ public class SHUTDOWNX : ApplicationContext
     /// <summary>
     /// Enumerates available shutdown options
     /// </summary>
-    enum ShutdownOptions
+    enum ShutdownActions
     {
         Shutdown,
         Restart,
@@ -29,7 +29,7 @@ public class SHUTDOWNX : ApplicationContext
     enum ShutdownTime
     {
         /// <summary>
-        /// "Now" value is actually 10 seconds instead of 0 which gives user time to abort
+        /// "Now" is actually 10 seconds instead of 0 which gives user time to abort
         /// </summary>
         Now = 10,
         Hrs1 = 3600,
@@ -45,7 +45,7 @@ public class SHUTDOWNX : ApplicationContext
     public SHUTDOWNX()
     {
         //Must have - we need tray icon for tray-icon-only app
-        trayIcon = new NotifyIcon()
+        trayIcon = new()
         {
             Icon = SHUTDOWN.Properties.Resources.GREEN,
             Text = "Click for shutdown options",
@@ -53,53 +53,47 @@ public class SHUTDOWNX : ApplicationContext
             BalloonTipText = "You may shutdown your computer here",
             BalloonTipIcon = ToolTipIcon.Info,
             Visible = true,
-            ContextMenu = new ContextMenu(new MenuItem[]
+            ContextMenu = new(new MenuItem[]
             //Add menu items and set their properties and events
             //Use "Tag" property to store custom parameters (shutdown time or shutdown option)
             {
-                new MenuItem("Time schedule", new MenuItem[] //submenu item
+                new("Time schedule", new MenuItem[] //submenu item
                 {
-                    new MenuItem("Now", EventCheckMark)
+                    new("Now", EventCheckMark)
                     {
                         Tag = ShutdownTime.Now,
                         RadioCheck = true,
                     },
-                    new MenuItem("1 hour", EventCheckMark)
+                    new("1 hour", EventCheckMark)
                     {
                         Tag = ShutdownTime.Hrs1,
                         RadioCheck = true,
                         Checked = true
                     },
-                    new MenuItem("2 hours", EventCheckMark)
+                    new("2 hours", EventCheckMark)
                     {
                         Tag = ShutdownTime.Hrs2,
                         RadioCheck = true,
                     },
-                    new MenuItem("6 hours", EventCheckMark)
+                    new("6 hours", EventCheckMark)
                     {
                         Tag = ShutdownTime.Hrs6,
                         RadioCheck = true
                     }
-                })
+                }) { Name = "ShutdownTime" },
+                new("-") { Name = "Separator" },
+                new("Shutdown action", new MenuItem[] //this is menu item with submenu
                 {
-                    Name = "ShutdownTime"
-                },
-                new MenuItem("-") {Name = "Separator" },
-                new MenuItem("Shutdown action", new MenuItem[] //this is menu item with submenu
-                {
-                    new MenuItem("Shutdown", EventCheckMark) {RadioCheck = true, Checked = true, Tag = ShutdownOptions.Shutdown },
-                    new MenuItem("Restart", EventCheckMark) {RadioCheck = true, Tag = ShutdownOptions.Restart }
-                })
-                {
-                    Name = "ShutdownAction"
-                },
-                new MenuItem("-") {Name = "Separator" },
-                new MenuItem("SHUTDOWN!", EventShutdown) {DefaultItem = true },
-                new MenuItem("Abort shutdown", EventAbort),
-                new MenuItem("-") {Name = "Separator" },
-                new MenuItem("Exit", EventExit)
+                    new("Shutdown", EventCheckMark) {RadioCheck = true, Checked = true, Tag = ShutdownActions.Shutdown },
+                    new("Restart", EventCheckMark) {RadioCheck = true, Tag = ShutdownActions.Restart }
+                }) { Name = "ShutdownAction" },
+                new("-") {Name = "Separator" },
+                new("SHUTDOWN!", EventShutdown) {DefaultItem = true },
+                new("Abort shutdown", EventAbort),
+                new("-") {Name = "Separator" },
+                new("Exit", EventExit)
             })
-        }; //tray icon constructor end
+        };
 
         //Register custom menu draw routine for each menu item
         RegisterMenuEvents(trayIcon.ContextMenu, MenuItemMeasure, MenuItemDraw);
@@ -159,20 +153,19 @@ public class SHUTDOWNX : ApplicationContext
     {
         //Find checked menu item and fire up shutdown with proper option and time
         //(get option and time from enu item "Tag" properties)
-        foreach (MenuItem mi in trayIcon.ContextMenu.MenuItems["ShutdownTime"].MenuItems)
-            if (mi.Checked)
+        foreach (MenuItem time in trayIcon.ContextMenu.MenuItems["ShutdownTime"].MenuItems)
+            if (time.Checked)
             {
                 trayIcon.Icon = SHUTDOWN.Properties.Resources.ORANGE;
-                trayIcon.Text = "Shutdown scheduled at " +
-                    (DateTime.Now.AddSeconds((int)mi.Tag).ToShortTimeString());
+                trayIcon.Text = "Shutdown scheduled at " + DateTime.Now.AddSeconds((int)time.Tag).ToShortTimeString();
                 trayIcon.BalloonTipTitle = trayIcon.Text;
                 trayIcon.BalloonTipText = "Right-click tray icon to abort scheduled shutdown.";
 
                 //Now get picked item from shutdown options
-                foreach (MenuItem mi2 in trayIcon.ContextMenu.MenuItems["ShutdownAction"].MenuItems)
-                    if (mi2.Checked)
+                foreach (MenuItem action in trayIcon.ContextMenu.MenuItems["ShutdownAction"].MenuItems)
+                    if (action.Checked)
                     {
-                        Shutdown(mi2.Tag, mi.Tag);
+                        Shutdown(action.Tag, time.Tag);
                         break;
                     }
                 break;
@@ -187,7 +180,7 @@ public class SHUTDOWNX : ApplicationContext
         trayIcon.BalloonTipTitle = "Shutdown options";
         trayIcon.BalloonTipText = "You may shutdown your computer here";
 
-        Shutdown(ShutdownOptions.Abort, ShutdownTime.Now);
+        Shutdown(ShutdownActions.Abort, ShutdownTime.Now);
     }
 
     //Exit menu handler
@@ -200,37 +193,35 @@ public class SHUTDOWNX : ApplicationContext
     /// <summary>
     /// Execute "shutdown" system command.
     /// </summary>
-    /// <param name="ShutdownOption">Shutdown action to execute.</param>
+    /// <param name="ShutdownAction">Shutdown action to execute.</param>
     /// <param name="ShutdownTime">Time to execute the option.</param>
-    void Shutdown(object ShutdownOption, object ShutdownTime)
+    void Shutdown(object ShutdownAction, object ShutdownTime)
     {
         //Run system "shutdown.exe" command with desired option and time
-        using (Process p = new Process())
+        using Process p = new();
+        p.StartInfo.FileName = Environment.GetEnvironmentVariable("windir") + @"\system32\shutdown.exe";
+        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.CreateNoWindow = true;
+
+        //Each action requires different set of arguments and triggers different GUI setup
+        //so we can't just put one-liner command execute here
+        switch (ShutdownAction)
         {
-            p.StartInfo.FileName = Environment.GetEnvironmentVariable("windir") + @"\system32\shutdown.exe";
-            p.StartInfo.UseShellExecute = false;
-            p.StartInfo.CreateNoWindow = true;
-
-            //Each option requires different set of arguments and triggers different GUI setup
-            //so we can't just put one-liner command execute here
-            switch (ShutdownOption)
-            {
-                case ShutdownOptions.Shutdown:
-                    p.StartInfo.Arguments = string.Join(" ", "/s", "/t", ((int)ShutdownTime).ToString());
-                    break;
-                case ShutdownOptions.Restart:
-                    p.StartInfo.Arguments = string.Join(" ", "/r", "/t", ((int)ShutdownTime).ToString());
-                    break;
-                case ShutdownOptions.Abort:
-                    p.StartInfo.Arguments = "/a";
-                    break;
-                default:
-                    break;
-            }
-
-            //Shut me down!
-            p.Start();
+            case ShutdownActions.Shutdown:
+                p.StartInfo.Arguments = string.Join(" ", "/s", "/t", ((int)ShutdownTime).ToString());
+                break;
+            case ShutdownActions.Restart:
+                p.StartInfo.Arguments = string.Join(" ", "/r", "/t", ((int)ShutdownTime).ToString());
+                break;
+            case ShutdownActions.Abort:
+                p.StartInfo.Arguments = "/a";
+                break;
+            default:
+                break;
         }
+
+        //Shut me down!
+        p.Start();
     }
 
     //Custom menu item drawing - measure the area
@@ -238,59 +229,53 @@ public class SHUTDOWNX : ApplicationContext
     {
         //Use bold font for default menu item and regular one for other items
         //(works as long as system default menu font is not bold ;))
-        using (Font f = (ClickedItem as MenuItem).DefaultItem ?   //is it default
+        using Font f = (ClickedItem as MenuItem).DefaultItem ?   //is it default
             new Font(SystemFonts.MenuFont, FontStyle.Bold) : //yes it is, use bold font
-            SystemFonts.MenuFont)                            //no, use default font
-        {
-            SizeF sz = e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f);
+            SystemFonts.MenuFont;                            //no, use default font
+        SizeF sz = e.Graphics.MeasureString((ClickedItem as MenuItem).Text, f);
 
-            e.ItemWidth = (int)(1.1 * sz.Width);
-            e.ItemHeight = (int)(1.30 * sz.Height);
-        }
+        e.ItemWidth = (int)(1.1 * sz.Width);
+        e.ItemHeight = (int)(1.30 * sz.Height);
     }
 
     //Custom menu item drawing - draw item
     private void MenuItemDraw(object Item, DrawItemEventArgs e)
     {
         //Bold font for default menu item, regular font for other items
-        using (Font f = (Item as MenuItem).DefaultItem ? new Font(SystemFonts.MenuFont, FontStyle.Bold) : SystemFonts.MenuFont)
+        using Font f = (Item as MenuItem).DefaultItem ? new Font(SystemFonts.MenuFont, FontStyle.Bold) : SystemFonts.MenuFont;
+        //Draw backgrounds - mouse over...
+        if ((e.State & DrawItemState.Selected) != DrawItemState.None)
+            //Distinguish between enabled and disabled items
+            if ((Item as MenuItem).Enabled)
+            {
+                //Horizontal gradient and outside box
+                e.Graphics.FillRectangle(new LinearGradientBrush(e.Bounds, SystemColors.GradientActiveCaption, SystemColors.Control, (float)0), e.Bounds);
+                e.Graphics.DrawRectangle(SystemPens.ControlDark, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
+            }
+            else { }
+        //...and mouse out
+        else
         {
-            //Draw backgrounds - mouse over...
-            if ((e.State & DrawItemState.Selected) != DrawItemState.None)
-                //Distinguish between enabled and disabled items
-                if ((Item as MenuItem).Enabled)
-                {
-                    //Horizontal gradient and outside box
-                    e.Graphics.FillRectangle(new LinearGradientBrush(e.Bounds, SystemColors.GradientActiveCaption, SystemColors.Control, (float)0), e.Bounds);
-                    e.Graphics.DrawRectangle(SystemPens.ControlDark, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
-                }
-                else { }
-            //...and mouse out
-            else
-            {
-                //Clear gradient and box with "control" color so they disappear
-                e.Graphics.FillRectangle(SystemBrushes.Control, e.Bounds);
-                e.Graphics.DrawRectangle(SystemPens.Control, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
-            }
+            //Clear gradient and box with "control" color so they disappear
+            e.Graphics.FillRectangle(SystemBrushes.Control, e.Bounds);
+            e.Graphics.DrawRectangle(SystemPens.Control, e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1);
+        }
 
-            //Setup brush - distinguish between enabled and disabled items
-            using (Brush b = ((Item as MenuItem).Enabled) ? new SolidBrush(SystemColors.ControlText) : new SolidBrush(SystemColors.GrayText))
-            {
-                //Finally, draw menu item text
-                string checkmark = " ●  ";
-                if ((Item as MenuItem).Checked)
-                {
-                    e.Graphics.DrawString(checkmark + (Item as MenuItem).Text, f, b,
-                    e.Bounds.X,
-                    e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
-                }
-                else
-                {
-                    e.Graphics.DrawString((Item as MenuItem).Text, f, b,
-                    e.Bounds.X + e.Graphics.MeasureString(checkmark, f).Width,
-                    e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
-                }
-            }
+        //Setup brush - distinguish between enabled and disabled items
+        using Brush b = (Item as MenuItem).Enabled ? new SolidBrush(SystemColors.ControlText) : new SolidBrush(SystemColors.GrayText);
+        //Finally, draw menu item text
+        string checkmark = " ●  ";
+        if ((Item as MenuItem).Checked)
+        {
+            e.Graphics.DrawString(checkmark + (Item as MenuItem).Text, f, b,
+            e.Bounds.X,
+            e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
+        }
+        else
+        {
+            e.Graphics.DrawString((Item as MenuItem).Text, f, b,
+            e.Bounds.X + e.Graphics.MeasureString(checkmark, f).Width,
+            e.Bounds.Y + (e.Bounds.Height - e.Graphics.MeasureString((Item as MenuItem).Text, f).Height) / 2);
         }
     }
 }
