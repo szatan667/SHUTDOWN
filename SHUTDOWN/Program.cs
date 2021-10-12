@@ -9,10 +9,7 @@ using System.Windows.Forms;
 /// </summary>
 public class SHUTDOWNX : ApplicationContext
 {
-    static void Main()
-    {
-        Application.Run(new SHUTDOWNX());
-    }
+    static void Main() => Application.Run(new SHUTDOWNX());
 
     /// <summary>
     /// Enumerates available shutdown options
@@ -129,7 +126,11 @@ public class SHUTDOWNX : ApplicationContext
         }
     }
 
-    //Set check mark for clicked menu item
+    /// <summary>
+    /// Set check mark for clicked menu item
+    /// </summary>
+    /// <param name="ClickedItem">Event sender</param>
+    /// <param name="e">Event arguments</param>
     private void EventCheckMark(object ClickedItem, EventArgs e)
     {
         //Go through menu items at the same level (all from sender's parent)
@@ -141,14 +142,22 @@ public class SHUTDOWNX : ApplicationContext
         (ClickedItem as MenuItem).Checked = true;
     }
 
-    //Tray icon click handler
+    /// <summary>
+    /// Tray icon click handler
+    /// </summary>
+    /// <param name="s">Event sender</param>
+    /// <param name="e">Event arguments</param>
     private void EventIconClick(object s, MouseEventArgs e)
     {
         if (e.Button == MouseButtons.Left)
             trayIcon.ShowBalloonTip(0);
     }
 
-    //Shutdown action menu handler
+    /// <summary>
+    /// Shutdown action menu handler
+    /// </summary>
+    /// <param name="s">Event sender</param>
+    /// <param name="e">Event arguments</param>
     void EventShutdown(object s, EventArgs e)
     {
         //Find checked menu item and fire up shutdown with proper option and time
@@ -172,7 +181,11 @@ public class SHUTDOWNX : ApplicationContext
             }
     }
 
-    //Abort action menu handler
+    /// <summary>
+    /// Abort action menu handler
+    /// </summary>
+    /// <param name="s">Event sender</param>
+    /// <param name="e">Event arguments</param>
     void EventAbort(object s, EventArgs e)
     {
         trayIcon.Icon = SHUTDOWN.Properties.Resources.GREEN;
@@ -183,13 +196,17 @@ public class SHUTDOWNX : ApplicationContext
         Shutdown(ShutdownActions.Abort, ShutdownTime.Now);
     }
 
-    //Exit menu handler
+    /// <summary>
+    /// Exit menu handler
+    /// </summary>
+    /// <param name="s">Event sender</param>
+    /// <param name="e">Event arguments</param>
     void EventExit(object s, EventArgs e)
     {
         trayIcon.Dispose();
         Application.Exit();
     }
-    
+
     /// <summary>
     /// Execute "shutdown" system command.
     /// </summary>
@@ -199,7 +216,7 @@ public class SHUTDOWNX : ApplicationContext
     {
         //Run system "shutdown.exe" command with desired option and time
         using Process p = new();
-        p.StartInfo.FileName = Environment.GetEnvironmentVariable("windir") + @"\system32\shutdown.exe";
+        p.StartInfo.FileName = $@"{Environment.GetEnvironmentVariable("windir")}\system32\shutdown.exe";
         p.StartInfo.UseShellExecute = false;
         p.StartInfo.CreateNoWindow = true;
 
@@ -224,7 +241,11 @@ public class SHUTDOWNX : ApplicationContext
         p.Start();
     }
 
-    //Custom menu item drawing - measure the area
+    /// <summary>
+    /// Custom menu item drawing - measure the area
+    /// </summary>
+    /// <param name="ClickedItem">Event source</param>
+    /// <param name="e">Event arguments</param>
     private void MenuItemMeasure(object ClickedItem, MeasureItemEventArgs e)
     {
         //Use bold font for default menu item and regular one for other items
@@ -238,7 +259,11 @@ public class SHUTDOWNX : ApplicationContext
         e.ItemHeight = (int)(1.30 * sz.Height);
     }
 
-    //Custom menu item drawing - draw item
+    /// <summary>
+    /// Custom menu item drawing - draw item
+    /// </summary>
+    /// <param name="Item">Event source</param>
+    /// <param name="e">Evemt arguments</param>
     private void MenuItemDraw(object Item, DrawItemEventArgs e)
     {
         //Bold font for default menu item, regular font for other items
